@@ -20,20 +20,12 @@ local Window = VexUI:CreateWindow({
     },
 })
 
--- EDIT OPEN BUTTON
+-- HIDE DEFAULT OPEN BUTTON (set transparency to 1 so it's invisible)
 Window:EditOpenButton({
     Title = "Open Civic Hub",
     Icon = "door-open",
-    Transparency = 0.2,
-    StrokeThickness = 1,
-    Rotation = 0,
-    Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(90, 120, 210)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 90, 180))
-    },
-    AutoRotation = false,
-    Speed = 15,
-    CornerRadius = UDim.new(0,16),
+    Transparency = 1,
+    StrokeThickness = 0,
 })
 
 -- =======================================
