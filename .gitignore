@@ -1,1 +1,1 @@
-Nothing should be ignored based on the provided file changes, as they only include source code files (.lua) without any build artifacts, dependencies, or temporary files.
+Nothing should be ignored based on the provided file changes. The modified files ('Main.lua', 'Module/Settings.lua') are source code files that should not be added to .gitignore.

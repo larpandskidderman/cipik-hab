@@ -31,13 +31,335 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
 -- =======================================
--- FILESYSTEM HELPERS
+-- PERSISTENCE SYSTEM
+-- Folder: CivicHub/
+-- File: CivicHub/settings.json
+
+local PERSISTENCE_FOLDER = "CivicHub"
+local PERSISTENCE_FILE = "settings.json"
+local SAVE_DEBOUNCE_TIME = 0.5 -- seconds to wait before saving after change
+local IsSaving = false
+local PendingSave = false
+local LastSaveTime = 0
+
+-- Filesystem helpers for persistence
 local function isFileSystemAvailable()
     return pcall(function()
         return writefile and readfile and isfile and makefolder and isfolder
     end)
 end
 
+local function ensurePersistenceFolder()
+    if not isFileSystemAvailable() then return false end
+    pcall(function()
+        if not isfolder(PERSISTENCE_FOLDER) then
+            makefolder(PERSISTENCE_FOLDER)
+        end
+    end)
+    return true
+end
+
+local function getPersistenceFilePath()
+    if not ensurePersistenceFolder() then return nil end
+    return PERSISTENCE_FOLDER .. "/" .. PERSISTENCE_FILE
+end
+
+-- =======================================
+-- DEFAULT SETTINGS TABLE
+-- All settings should be defined here for easy management
+local DEFAULT_SETTINGS = {
+    -- ESP
+    SurvivorESP = false,
+    KillerESP = false,
+    GeneratorESP = false,
+    SCPESP = false,
+    PalletESP = false,
+    WindowESP = false,
+    ESPRadius = 5000,
+
+    -- ESP Status
+    StatusESPEnabled = false,
+    StatusShowName = true,
+    StatusShowDistance = true,
+    StatusShowHealth = false,
+    StatusRadius = 5000,
+
+    -- Crosshair
+    CrosshairEnabled = false,
+    CrosshairStyle = "Plus",
+    CrosshairX = 0,
+    CrosshairY = 0,
+
+    -- Player
+    AutoSkillCheck = false,
+    SkillCheckMode = "Legit",
+    AutoWiggle = false,
+    AutoFlee = false,
+    AntiKnockDown = false,
+    FastVault = false,
+    VaultSpeed = 1.2,
+    MoonwalkShowButton = false,
+    MoonwalkKeybind = nil,
+    MoonwalkSpamSpeed = 30,
+    MoonwalkIntensity = 35,
+    MoonwalkEnabled = false,
+
+    -- Killer
+    AutoStalk = false,
+    AimLockAttack = false,
+    AutoKillAll = false,
+    AutoSpamAttack = false,
+    AttackDelay = 0.45,
+    MaskedPower = "Cobra",
+
+    -- Parry
+    AutoParry = false,
+    ShowParryRange = false,
+    ParryDistance = 15,
+    FaceSensitivity = 0.7,
+
+    -- AimBot
+    AimLockEnabled = false,
+    AimTarget = "Killer",
+    AimPart = "HumanoidRootPart",
+    AimFOV = 250,
+    AimPrediction = 0.12,
+
+    -- Movement
+    WalkSpeedEnabled = false,
+    WalkSpeedValue = 17.6,
+    NoClip = false,
+    JumpPowerEnabled = false,
+    JumpPowerValue = 50,
+
+    -- Emote
+    EmoteSelected = "Mannrobics",
+    ShowEmoteButton = false,
+
+    -- Fun
+    JerkTool = false,
+
+    -- Visual
+    Fullbright = false,
+    NoShadow = false,
+    LowGraphics = false,
+    NoScreenEffects = false,
+    CleanSky = false,
+    ClockTime = 14,
+    Brightness = 2,
+    FPSBoost = false,
+    ReduceGraphics = false,
+
+    -- Zoom
+    UnlimitedZoom = false,
+    MaxZoomDistance = 1000,
+    CustomFOV = false,
+    CameraFOV = 70,
+
+    -- Theme
+    Theme = "Dark",
+    Transparent = false,
+}
+
+-- =======================================
+-- CURRENT STATE
+local CurrentConfig = {}
+local ConfigStorage = {}
+local ConfigName = "MyConfig"
+local AutoLoadEnabled = false
+local AutoLoadConfigName = nil
+local IsInitialLoad = true
+local PersistenceInitialized = false
+
+-- =======================================
+-- DEEP COPY
+local function deepCopy(t)
+    local copy = {}
+    for k, v in pairs(t) do
+        if type(v) == "table" then
+            copy[k] = deepCopy(v)
+        else
+            copy[k] = v
+        end
+    end
+    return copy
+end
+
+-- =======================================
+-- PERSISTENCE FUNCTIONS
+
+-- Initialize default settings
+local function initializeDefaultSettings()
+    CurrentConfig = deepCopy(DEFAULT_SETTINGS)
+end
+
+-- Save settings to JSON file (CivicHub/settings.json)
+local function SaveSettingsInternal()
+    if not isFileSystemAvailable() then return false end
+    
+    local path = getPersistenceFilePath()
+    if not path then return false end
+    
+    local success, result = pcall(function()
+        local configData = {
+            Settings = deepCopy(CurrentConfig),
+            ConfigName = ConfigName,
+            AutoLoadEnabled = AutoLoadEnabled,
+            AutoLoadConfigName = AutoLoadConfigName,
+            LastSaved = os.time()
+        }
+        local json = HttpService:JSONEncode(configData)
+        writefile(path, json)
+        return true
+    end)
+    
+    return success and result
+end
+
+-- Throttled save to avoid too frequent writes
+local function scheduleSave()
+    if IsSaving then
+        PendingSave = true
+        return
+    end
+    
+    local currentTime = tick()
+    local timeSinceLastSave = currentTime - LastSaveTime
+    
+    if timeSinceLastSave < SAVE_DEBOUNCE_TIME then
+        PendingSave = true
+        task.delay(SAVE_DEBOUNCE_TIME - timeSinceLastSave, function()
+            if PendingSave then
+                PendingSave = false
+                scheduleSave()
+            end
+        end)
+        return
+    end
+    
+    IsSaving = true
+    LastSaveTime = currentTime
+    
+    local success = SaveSettingsInternal()
+    
+    IsSaving = false
+    
+    if PendingSave then
+        PendingSave = false
+        scheduleSave()
+    end
+    
+    return success
+end
+
+-- Public SaveSettings function
+local function SaveSettings()
+    return SaveSettingsInternal()
+end
+
+-- Load settings from JSON file
+local function LoadSettingsInternal()
+    if not isFileSystemAvailable() then return nil end
+    
+    local path = getPersistenceFilePath()
+    if not path then return nil end
+    if not isfile(path) then return nil end
+    
+    local success, result = pcall(function()
+        local json = readfile(path)
+        return HttpService:JSONDecode(json)
+    end)
+    
+    if success then
+        return result
+    end
+    
+    return nil
+end
+
+-- Public LoadSettings function
+local function LoadSettings()
+    return LoadSettingsInternal()
+end
+
+-- Update a single setting and auto-save
+local function UpdateSetting(key, value)
+    if DEFAULT_SETTINGS[key] == nil then
+        warn("[Civic Hub] Unknown setting key: " .. tostring(key))
+        return false
+    end
+    
+    CurrentConfig[key] = value
+    scheduleSave()
+    return true
+end
+
+-- Reset all settings to default
+local function ResetSettings()
+    initializeDefaultSettings()
+    SaveSettingsInternal()
+    return true
+end
+
+-- Merge loaded settings with defaults (preserves old valid settings, adds new defaults)
+local function mergeSettings(loadedData)
+    if not loadedData or not loadedData.Settings then
+        return false
+    end
+    
+    local loadedSettings = loadedData.Settings
+    
+    -- Apply each setting from loaded data if it exists and is valid
+    for key, defaultValue in pairs(DEFAULT_SETTINGS) do
+        if loadedSettings[key] ~= nil then
+            local loadedValue = loadedSettings[key]
+            -- Basic type validation
+            if type(loadedValue) == type(defaultValue) then
+                CurrentConfig[key] = loadedValue
+            else
+                CurrentConfig[key] = defaultValue
+            end
+        else
+            -- Use default for missing settings (backward compatibility)
+            CurrentConfig[key] = defaultValue
+        end
+    end
+    
+    -- Load metadata if available
+    if loadedData.ConfigName then
+        ConfigName = loadedData.ConfigName
+    end
+    if loadedData.AutoLoadEnabled ~= nil then
+        AutoLoadEnabled = loadedData.AutoLoadEnabled
+    end
+    if loadedData.AutoLoadConfigName then
+        AutoLoadConfigName = loadedData.AutoLoadConfigName
+    end
+    
+    return true
+end
+
+-- Auto-load settings on startup
+local function AutoLoadSettings()
+    initializeDefaultSettings()
+    
+    local loadedData = LoadSettingsInternal()
+    if loadedData then
+        local success = mergeSettings(loadedData)
+        if success then
+            PersistenceInitialized = true
+            return true
+        end
+    end
+    
+    -- If no saved settings or merge failed, use defaults
+    initializeDefaultSettings()
+    PersistenceInitialized = true
+    return false
+end
+
+-- =======================================
+-- FILESYSTEM HELPERS (kept for config management)
 local function getConfigFolder()
     if not isFileSystemAvailable() then return nil end
     local folder = "CivicHub_Configs"
@@ -151,125 +473,6 @@ local function deleteConfigFile(name)
 end
 
 -- =======================================
--- DEEP COPY
-local function deepCopy(t)
-    local copy = {}
-    for k, v in pairs(t) do
-        if type(v) == "table" then
-            copy[k] = deepCopy(v)
-        else
-            copy[k] = v
-        end
-    end
-    return copy
-end
-
--- =======================================
--- DEFAULT CONFIGURATION
-local DefaultConfig = {
-    -- ESP
-    SurvivorESP = false,
-    KillerESP = false,
-    GeneratorESP = false,
-    SCPESP = false,
-    PalletESP = false,
-    WindowESP = false,
-    ESPRadius = 5000,
-
-    -- ESP Status
-    StatusESPEnabled = false,
-    StatusShowName = true,
-    StatusShowDistance = true,
-    StatusShowHealth = false,
-    StatusRadius = 5000,
-
-    -- Crosshair
-    CrosshairEnabled = false,
-    CrosshairStyle = "Plus",
-    CrosshairX = 0,
-    CrosshairY = 0,
-
-    -- Player
-    AutoSkillCheck = false,
-    SkillCheckMode = "Legit",
-    AutoWiggle = false,
-    AutoFlee = false,
-    AntiKnockDown = false,
-    FastVault = false,
-    VaultSpeed = 1.2,
-    MoonwalkShowButton = false,
-    MoonwalkKeybind = nil,
-    MoonwalkSpamSpeed = 30,
-    MoonwalkIntensity = 35,
-    MoonwalkEnabled = false,
-
-    -- Killer
-    AutoStalk = false,
-    AimLockAttack = false,
-    AutoKillAll = false,
-    AutoSpamAttack = false,
-    AttackDelay = 0.45,
-    MaskedPower = "Cobra",
-
-    -- Parry
-    AutoParry = false,
-    ShowParryRange = false,
-    ParryDistance = 15,
-    FaceSensitivity = 0.7,
-
-    -- AimBot
-    AimLockEnabled = false,
-    AimTarget = "Killer",
-    AimPart = "HumanoidRootPart",
-    AimFOV = 250,
-    AimPrediction = 0.12,
-
-    -- Movement
-    WalkSpeedEnabled = false,
-    WalkSpeedValue = 17.6,
-    NoClip = false,
-    JumpPowerEnabled = false,
-    JumpPowerValue = 50,
-
-    -- Emote
-    EmoteSelected = "Mannrobics",
-    ShowEmoteButton = false,
-
-    -- Fun
-    JerkTool = false,
-
-    -- Visual
-    Fullbright = false,
-    NoShadow = false,
-    LowGraphics = false,
-    NoScreenEffects = false,
-    CleanSky = false,
-    ClockTime = 14,
-    Brightness = 2,
-    FPSBoost = false,
-    ReduceGraphics = false,
-
-    -- Zoom
-    UnlimitedZoom = false,
-    MaxZoomDistance = 1000,
-    CustomFOV = false,
-    CameraFOV = 70,
-
-    -- Theme
-    Theme = "Dark",
-    Transparent = false,
-}
-
--- =======================================
--- CURRENT STATE
-local CurrentConfig = deepCopy(DefaultConfig)
-local ConfigStorage = {}
-local ConfigName = "MyConfig"
-local AutoLoadEnabled = false
-local AutoLoadConfigName = nil
-local IsInitialLoad = true
-
--- =======================================
 -- UI REFERENCES (will be set by Main)
 local UICallbacks = {}
 
@@ -277,10 +480,53 @@ local function setUICallbacks(callbacks)
     UICallbacks = callbacks
 end
 
+-- Validate value against expected type/constraints
+local function validateValue(key, defaultValue, validator)
+    local val = CurrentConfig[key]
+    if val ~= nil and (not validator or validator(val)) then
+        return val
+    end
+    return defaultValue
+end
+
 -- =======================================
 -- API
 local Settings = {}
 
+-- Persistence System Functions (CivicHub/settings.json)
+function Settings.SaveSettings()
+    return SaveSettings()
+end
+
+function Settings.LoadSettings()
+    return LoadSettings()
+end
+
+function Settings.UpdateSetting(key, value)
+    return UpdateSetting(key, value)
+end
+
+function Settings.ResetSettings()
+    return ResetSettings()
+end
+
+function Settings.AutoLoadSettings()
+    return AutoLoadSettings()
+end
+
+function Settings.GetCurrentConfig()
+    return CurrentConfig
+end
+
+function Settings.GetDefaultSettings()
+    return DEFAULT_SETTINGS
+end
+
+function Settings.IsPersistenceInitialized()
+    return PersistenceInitialized
+end
+
+-- Config Management Functions (CivicHub_Configs/*.json)
 function Settings:Save(name)
     local configName = name or ConfigName
     local configData = {
@@ -545,6 +791,8 @@ function Settings:Set(name, value)
         AutoLoadConfigName = value
     else
         CurrentConfig[name] = value
+        -- Auto-save when individual setting changes (throttled)
+        scheduleSave()
     end
 end
 
@@ -607,6 +855,11 @@ end
 -- Export auto-save functions for Main.lua access
 function Settings:getAutoSaveData()
     return loadAutoSettings()
+end
+
+-- Export persistence functions for external access
+function Settings.getAutoLoadSettings()
+    return AutoLoadSettings
 end
 
 -- =======================================
