@@ -150,6 +150,7 @@ local DefaultConfig = {
 
     -- Player
     AutoSkillCheck = false,
+    SkillCheckMode = "Legit",
     AutoWiggle = false,
     AutoFlee = false,
     AntiKnockDown = false,

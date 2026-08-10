@@ -124,6 +124,11 @@ local OriginalValues = {
     FOV = 70,
 }
 
+-- Skill Check state tracking
+local SkillCheckActive = false
+local SkillCheckHandled = false
+local CurrentRandomResult = nil
+
 local Cached = {
     Generators = {},
     Windows = {},
@@ -161,6 +166,8 @@ local CurrentConfig = {
     AimFOV = 250,
     AimPrediction = 0.12,
     VaultSpeed = 1.2,
+    AutoSkillCheck = false,
+    SkillCheckMode = "Legit",
 }
 
 local function setConfig(config)
@@ -368,14 +375,6 @@ workspace.DescendantAdded:Connect(function(obj)
     end
 end)
 
-workspace.DescendantRemoving:Connect(function(obj)
-    CachedSCP[obj] = nil
-    Cached.Generators[obj] = nil
-    Cached.Windows[obj] = nil
-    Cached.Pallets[obj] = nil
-    removeESP(obj)
-end)
-
 -- =======================================
 -- ESP FUNCTIONS
 local function removeESP(obj)
@@ -388,6 +387,14 @@ local function removeESP(obj)
     local b = obj:FindFirstChild("GenESP")
     if b then b:Destroy() end
 end
+
+workspace.DescendantRemoving:Connect(function(obj)
+    CachedSCP[obj] = nil
+    Cached.Generators[obj] = nil
+    Cached.Windows[obj] = nil
+    Cached.Pallets[obj] = nil
+    removeESP(obj)
+end)
 
 local function removeStatusESP(char)
     if StatusESP[char] then
@@ -912,22 +919,88 @@ local function startSkillCheck()
     end
     if not CurrentConfig.AutoSkillCheck then return end
 
+    -- Reset state for new skill check session
+    SkillCheckActive = false
+    SkillCheckHandled = false
+    CurrentRandomResult = nil
+
     SkillHeartbeat = RunService.RenderStepped:Connect(function()
         if not CurrentConfig.AutoSkillCheck or busy then return end
+        
         local prompt = PlayerGui:FindFirstChild("SkillCheckPromptGui")
-        if not prompt then return end
+        if not prompt then 
+            -- Skill check prompt disappeared, reset state
+            SkillCheckActive = false
+            SkillCheckHandled = false
+            CurrentRandomResult = nil
+            return 
+        end
+        
         local check = prompt:FindFirstChild("Check")
-        if not check or not check.Visible then return end
+        if not check or not check.Visible then 
+            SkillCheckActive = false
+            SkillCheckHandled = false
+            CurrentRandomResult = nil
+            return 
+        end
+        
         local line = check:FindFirstChild("Line")
         local goal = check:FindFirstChild("Goal")
         if not line or not goal then return end
+        
+        -- Detect new skill check
+        if not SkillCheckActive then
+            SkillCheckActive = true
+            SkillCheckHandled = false
+            
+            -- Determine mode for this skill check
+            local mode = CurrentConfig.SkillCheckMode or "Legit"
+            if mode == "Random" then
+                local modes = {"Instant", "Legit", "Fail"}
+                CurrentRandomResult = modes[math.random(1, #modes)]
+            else
+                CurrentRandomResult = mode
+            end
+        end
+        
+        -- Skip if already handled
+        if SkillCheckHandled then return end
+        
         local lr = line.Rotation % 360
         local gr = goal.Rotation % 360
         local startRange = (gr + 102) % 360
         local endRange = (gr + 116) % 360
         local success = (startRange > endRange and (lr >= startRange or lr <= endRange))
             or (lr >= startRange and lr <= endRange)
+        
+        -- Handle Instant mode: position line directly to valid area
+        if CurrentRandomResult == "Instant" then
+            -- Calculate a valid rotation within the goal range
+            local validRotation
+            if startRange > endRange then
+                -- Range wraps around 360
+                validRotation = startRange
+            else
+                validRotation = (startRange + endRange) / 2
+            end
+            
+            -- Set line rotation directly to valid position
+            line.Rotation = validRotation
+            
+            -- Recalculate success after positioning
+            lr = line.Rotation % 360
+            success = (startRange > endRange and (lr >= startRange or lr <= endRange))
+                or (lr >= startRange and lr <= endRange)
+        end
+        
+        -- Handle Fail mode: never trigger
+        if CurrentRandomResult == "Fail" then
+            return
+        end
+        
+        -- Trigger input when valid (Legit or Instant with valid position)
         if success then
+            SkillCheckHandled = true
             busy = true
             task.spawn(function()
                 if UserInputService.TouchEnabled then
@@ -948,6 +1021,9 @@ local function stopSkillCheck()
         SkillHeartbeat = nil
     end
     busy = false
+    SkillCheckActive = false
+    SkillCheckHandled = false
+    CurrentRandomResult = nil
 end
 
 -- =======================================
