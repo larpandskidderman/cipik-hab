@@ -141,9 +141,35 @@ local EmoteButton = {
 
 -- =======================================
 -- CURRENT CONFIG (will be set by Settings module)
-local CurrentConfig = {}
+local CurrentConfig = {
+    -- Default values to prevent nil errors before config is set
+    ESPRadius = 100,
+    StatusRadius = 100,
+    ParryDistance = 15,
+    FaceSensitivity = 0.7,
+    CrosshairX = 0,
+    CrosshairY = 0,
+    CameraFOV = 70,
+    MaxZoomDistance = 1000,
+    ClockTime = 14,
+    Brightness = 2,
+    WalkSpeedValue = 17.6,
+    JumpPowerValue = 50,
+    AttackDelay = 0.45,
+    MoonwalkSpamSpeed = 30,
+    MoonwalkIntensity = 35,
+    AimFOV = 250,
+    AimPrediction = 0.12,
+    VaultSpeed = 1.2,
+}
 
 local function setConfig(config)
+    -- Merge with defaults to ensure all required fields exist
+    for k, v in pairs(CurrentConfig) do
+        if config[k] == nil then
+            config[k] = v
+        end
+    end
     CurrentConfig = config
 end
 
