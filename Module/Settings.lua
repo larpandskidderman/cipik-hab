@@ -205,6 +205,8 @@ local DefaultConfig = {
     CleanSky = false,
     ClockTime = 14,
     Brightness = 2,
+    FPSBoost = false,
+    ReduceGraphics = false,
 
     -- Zoom
     UnlimitedZoom = false,
@@ -363,6 +365,8 @@ function Settings:Load(name)
     CurrentConfig.CleanSky = validateValue("CleanSky", false, function(v) return type(v) == "boolean" end)
     CurrentConfig.ClockTime = validateValue("ClockTime", 14, function(v) return type(v) == "number" end)
     CurrentConfig.Brightness = validateValue("Brightness", 2, function(v) return type(v) == "number" end)
+    CurrentConfig.FPSBoost = validateValue("FPSBoost", false, function(v) return type(v) == "boolean" end)
+    CurrentConfig.ReduceGraphics = validateValue("ReduceGraphics", false, function(v) return type(v) == "boolean" end)
     CurrentConfig.UnlimitedZoom = validateValue("UnlimitedZoom", false, function(v) return type(v) == "boolean" end)
     CurrentConfig.MaxZoomDistance = validateValue("MaxZoomDistance", 1000, function(v) return type(v) == "number" end)
     CurrentConfig.CustomFOV = validateValue("CustomFOV", false, function(v) return type(v) == "boolean" end)
@@ -381,6 +385,12 @@ function Settings:Load(name)
     Features.applyUnlimitedZoom()
     Features.applyCameraFOV()
     Features.applyNoScreenEffects()
+    if CurrentConfig.FPSBoost then
+        Features.applyFPSBoost()
+    end
+    if CurrentConfig.ReduceGraphics then
+        Features.applyReduceGraphics()
+    end
     Features.applyWalkSpeed()
     Features.applyJumpPower()
     Features.toggleNoClip(CurrentConfig.NoClip)

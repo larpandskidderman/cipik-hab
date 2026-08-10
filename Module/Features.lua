@@ -1972,6 +1972,44 @@ return {
     applyNoScreenEffects = applyNoScreenEffects,
     applyUnlimitedZoom = applyUnlimitedZoom,
     applyCameraFOV = applyCameraFOV,
+    applyFPSBoost = function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        Lighting.ShadowSoftness = 0
+        if Lighting:FindFirstChildOfClass("Sky") then
+            Lighting:FindFirstChildOfClass("Sky"):Destroy()
+        end
+    end,
+    disableFPSBoost = function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+        Lighting.ShadowSoftness = originalLighting and originalLighting.ShadowSoftness or 1
+    end,
+    applyReduceGraphics = function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        Lighting.ShadowSoftness = 0
+        for _, v in ipairs(Lighting:GetChildren()) do
+            if v:IsA("Sky") then
+                v:Destroy()
+            end
+        end
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then
+                pcall(function()
+                    obj.Transparency = 1
+                end)
+            end
+        end
+    end,
+    disableReduceGraphics = function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+        Lighting.ShadowSoftness = originalLighting and originalLighting.ShadowSoftness or 1
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then
+                pcall(function()
+                    obj.Transparency = 0
+                end)
+            end
+        end
+    end,
     
     -- Emote
     playEmote = playEmote,

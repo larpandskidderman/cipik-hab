@@ -107,6 +107,8 @@ local UIRefs = {
     EmoteSelected_Dropdown = nil,
     ShowEmoteButton_Toggle = nil,
     JerkTool_Toggle = nil,
+    FPSBoost_Toggle = nil,
+    ReduceGraphics_Toggle = nil,
 
     -- Visual Tab
     Fullbright_Toggle = nil,
@@ -894,6 +896,35 @@ local function createMiscTab(Tabs)
     })
 
     Tabs.Misc:Section({Title = "Morph Avatar", Icon = "user-cog"})
+
+    -- Performance Section
+    Tabs.Misc:Section({Title = "Performance", Icon = "gauge"})
+
+    UIRefs.FPSBoost_Toggle = Tabs.Misc:Toggle({
+        Title = "Boost FPS",
+        Value = false,
+        Callback = function(v)
+            Settings:Set("FPSBoost", v)
+            if v then
+                Features.applyFPSBoost()
+            else
+                Features.disableFPSBoost()
+            end
+        end
+    })
+
+    UIRefs.ReduceGraphics_Toggle = Tabs.Misc:Toggle({
+        Title = "Reduce Graphics",
+        Value = false,
+        Callback = function(v)
+            Settings:Set("ReduceGraphics", v)
+            if v then
+                Features.applyReduceGraphics()
+            else
+                Features.disableReduceGraphics()
+            end
+        end
+    })
 
     local targetUsernameInput
     Tabs.Misc:Input({
