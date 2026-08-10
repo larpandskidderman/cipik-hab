@@ -394,6 +394,10 @@ local function createESPTab(Tabs)
             Settings:Set("CrosshairY", v)
         end
     })
+    
+    -- Reset crosshair position to center
+    Settings:Set("CrosshairX", 0)
+    Settings:Set("CrosshairY", 0)
 end
 
 -- =======================================
@@ -1156,7 +1160,7 @@ local function createSettingsTab(Tabs, Window)
     })
 
     Tabs.Settings:Button({
-        Title = "Save Setting",
+        Title = "Save Setting [not working]",
         Desc = "Save current configuration",
         Callback = function()
             local name = Settings:GetConfigName()
