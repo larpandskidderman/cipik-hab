@@ -133,14 +133,14 @@ local DefaultConfig = {
     SCPESP = false,
     PalletESP = false,
     WindowESP = false,
-    ESPRadius = 100,
+    ESPRadius = 5000,
 
     -- ESP Status
     StatusESPEnabled = false,
     StatusShowName = true,
     StatusShowDistance = true,
     StatusShowHealth = false,
-    StatusRadius = 100,
+    StatusRadius = 5000,
 
     -- Crosshair
     CrosshairEnabled = false,
@@ -304,12 +304,12 @@ function Settings:Load(name)
     CurrentConfig.SCPESP = validateValue("SCPESP", false, function(v) return type(v) == "boolean" end)
     CurrentConfig.PalletESP = validateValue("PalletESP", false, function(v) return type(v) == "boolean" end)
     CurrentConfig.WindowESP = validateValue("WindowESP", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.ESPRadius = validateValue("ESPRadius", 100, function(v) return type(v) == "number" end)
+    CurrentConfig.ESPRadius = validateValue("ESPRadius", 5000, function(v) return type(v) == "number" end)
     CurrentConfig.StatusESPEnabled = validateValue("StatusESPEnabled", false, function(v) return type(v) == "boolean" end)
     CurrentConfig.StatusShowName = validateValue("StatusShowName", true, function(v) return type(v) == "boolean" end)
     CurrentConfig.StatusShowDistance = validateValue("StatusShowDistance", true, function(v) return type(v) == "boolean" end)
     CurrentConfig.StatusShowHealth = validateValue("StatusShowHealth", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.StatusRadius = validateValue("StatusRadius", 100, function(v) return type(v) == "number" end)
+    CurrentConfig.StatusRadius = validateValue("StatusRadius", 5000, function(v) return type(v) == "number" end)
     CurrentConfig.CrosshairEnabled = validateValue("CrosshairEnabled", false, function(v) return type(v) == "boolean" end)
     CurrentConfig.CrosshairStyle = validateValue("CrosshairStyle", "Plus", function(v) return v == "Plus" or v == "Dot" or v == "Circle" end)
     CurrentConfig.CrosshairX = validateValue("CrosshairX", 0, function(v) return type(v) == "number" end)
