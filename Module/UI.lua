@@ -890,36 +890,8 @@ local function createMiscTab(Tabs)
         end
     })
 
+    -- Morph Avatar Section
     Tabs.Misc:Section({Title = "Morph Avatar", Icon = "user-cog"})
-
-    -- Performance Section
-    Tabs.Misc:Section({Title = "Performance", Icon = "gauge"})
-
-    UIRefs.FPSBoost_Toggle = Tabs.Misc:Toggle({
-        Title = "Boost FPS",
-        Value = false,
-        Callback = function(v)
-            Settings:Set("FPSBoost", v)
-            if v then
-                Features.applyFPSBoost()
-            else
-                Features.disableFPSBoost()
-            end
-        end
-    })
-
-    UIRefs.ReduceGraphics_Toggle = Tabs.Misc:Toggle({
-        Title = "Reduce Graphics",
-        Value = false,
-        Callback = function(v)
-            Settings:Set("ReduceGraphics", v)
-            if v then
-                Features.applyReduceGraphics()
-            else
-                Features.disableReduceGraphics()
-            end
-        end
-    })
 
     local targetUsernameInput
     Tabs.Misc:Input({
@@ -971,6 +943,35 @@ local function createMiscTab(Tabs)
                     Duration = 2
                 })
             end)
+        end
+    })
+
+    -- Performance Section
+    Tabs.Misc:Section({Title = "Performance", Icon = "gauge"})
+
+    UIRefs.FPSBoost_Toggle = Tabs.Misc:Toggle({
+        Title = "Boost FPS",
+        Value = false,
+        Callback = function(v)
+            Settings:Set("FPSBoost", v)
+            if v then
+                Features.applyFPSBoost()
+            else
+                Features.disableFPSBoost()
+            end
+        end
+    })
+
+    UIRefs.ReduceGraphics_Toggle = Tabs.Misc:Toggle({
+        Title = "Reduce Graphics",
+        Value = false,
+        Callback = function(v)
+            Settings:Set("ReduceGraphics", v)
+            if v then
+                Features.applyReduceGraphics()
+            else
+                Features.disableReduceGraphics()
+            end
         end
     })
 end
