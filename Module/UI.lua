@@ -82,6 +82,7 @@ local UIRefs = {
     MoonwalkToggle_Toggle = nil,
     MoonwalkSpamSpeed_Slider = nil,
     MoonwalkIntensity_Slider = nil,
+    SelfHeal_Toggle = nil,
     AutoStalk_Toggle = nil,
     AimLockAttack_Toggle = nil,
     AutoKillAll_Toggle = nil,
@@ -537,6 +538,38 @@ local function createPlayerTab(Tabs)
         Desc = "Teleport to finish line",
         Callback = function()
             Features.teleportToFinishLine()
+        end
+    })
+
+    Tabs.Player:Section({Title = "Self Heal", Icon = "heart-pulse"})
+
+    UIRefs.SelfHeal_Toggle = Tabs.Player:Toggle({
+        Title = "Self Heal",
+        Desc = "Automatically heal yourself when injured",
+        Value = false,
+        Callback = function(v)
+            Settings:Set("SelfHealEnabled", v)
+            if v then
+                Features.startSelfHeal()
+            else
+                Features.stopSelfHeal()
+            end
+        end
+    })
+
+    Tabs.Player:Button({
+        Title = "Instant Heal",
+        Desc = "Start healing immediately",
+        Callback = function()
+            Features.startSelfHeal()
+        end
+    })
+
+    Tabs.Player:Button({
+        Title = "Stop Healing",
+        Desc = "Stop current healing action",
+        Callback = function()
+            Features.stopSelfHeal()
         end
     })
 

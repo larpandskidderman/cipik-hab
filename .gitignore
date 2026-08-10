@@ -1,5 +1,5 @@
 ```
-# Compiled and build artifacts
+# Compiled and binary files
 *.pyc
 __pycache__/
 
@@ -11,7 +11,12 @@ venv/
 .env.local
 *.env.*
 
-# Logs and temp files
+# Build artifacts
+dist/
+build/
+target/
+
+# Logs and temporary files
 *.log
 *.tmp
 *.swp
@@ -25,8 +30,7 @@ venv/
 coverage/
 htmlcov/
 
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
+# System files
+.DS_Store
+Thumbs.db
 ```
