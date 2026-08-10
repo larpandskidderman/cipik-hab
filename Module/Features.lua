@@ -5,8 +5,8 @@
 -- VERSION 2.0.0
 -- =============================================
 
-local Root = script.Parent
-local Utils = require(Root.Utils)
+-- Dependencies will be injected via setConfig/setUI
+local Utils = nil
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -1892,4 +1892,9 @@ return {
     isDowned = isDowned,
     RemotesAvailable = RemotesAvailable,
     OriginalValues = OriginalValues,
+
+    -- Utils setter for remote compatibility
+    setUtils = function(utilsModule)
+        Utils = utilsModule
+    end,
 }

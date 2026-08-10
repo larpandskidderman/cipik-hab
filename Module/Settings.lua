@@ -5,8 +5,8 @@
 -- VERSION 2.0.0
 -- =============================================
 
-local Root = script.Parent
-local Features = require(Root.Features)
+-- Dependencies will be injected via setFeatures/setUI
+local Features = nil
 
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
@@ -524,6 +524,11 @@ end
 
 function Settings:setUICallbacks(callbacks)
     setUICallbacks(callbacks)
+end
+
+-- Set Features module for remote compatibility
+function Settings:setFeatures(featuresModule)
+    Features = featuresModule
 end
 
 -- =======================================

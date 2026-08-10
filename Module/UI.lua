@@ -5,10 +5,10 @@
 -- VERSION 2.0.0
 -- =============================================
 
-local Root = script.Parent
-local Features = require(Root.Features)
-local Settings = require(Root.Settings)
-local Utils = require(Root.Utils)
+-- Dependencies will be injected via initialize(deps)
+local Features = nil
+local Settings = nil
+local Utils = nil
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -1316,7 +1316,14 @@ Settings:setUICallbacks({
 
 -- =======================================
 -- MAIN INITIALIZATION
-local function initialize()
+local function initialize(deps)
+    -- Inject dependencies from Main.lua
+    if deps then
+        Features = deps.Features or Features
+        Settings = deps.Settings or Settings
+        Utils = deps.Utils or Utils
+    end
+
     local Window = createWindow()
     local Tabs = createTabs(Window)
 
