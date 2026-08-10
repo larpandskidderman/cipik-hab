@@ -140,7 +140,7 @@ RunService.RenderStepped:Connect(function()
         LastTick = tick()
         local Ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
         if WindowInstance then
-            WindowInstance:SetName(string.format("Civic Hub | FPS: %d | PING: %d ms", FPS, Ping))
+            WindowInstance.Title = string.format("Civic Hub | FPS: %d | PING: %d ms", FPS, Ping)
         end
     end
 end)
