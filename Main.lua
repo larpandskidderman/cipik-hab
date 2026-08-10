@@ -7,24 +7,43 @@
 
 local BaseURL = "https://raw.githubusercontent.com/larpandskidderman/cipik-hab/main/Module/"
 
-local Root = script.Parent
-
 -- =======================================
--- LOAD MODULES
-local UI = require(Root.Module.UI)
-local Features = require(Root.Module.Features)
-local Settings = require(Root.Module.Settings)
-local Utils = require(Root.Module.Utils)
+-- LOAD MODULES VIA REMOTE
+local function loadModule(name)
+    local success, result = pcall(function()
+        local source = game:HttpGet(BaseURL .. name .. ".lua")
+        local func = loadstring(source)
+        if func then
+            return func()
+        end
+        return nil
+    end)
+    if not success then
+        warn("[Civic Hub] Failed to load module:", name, result)
+    end
+    return result or {}
+end
+
+local UI = loadModule("UI")
+local Features = loadModule("Features")
+local Settings = loadModule("Settings")
+local Utils = loadModule("Utils")
 
 -- =======================================
 -- CONNECT DEPENDENCIES
+Features.setUtils(Utils)
+Settings:setFeatures(Features)
 Features.setConfig(Settings:GetCurrentConfig())
 
 -- =======================================
 -- INITIALIZE UI
 local function initializeCivicHub()
-    -- Initialize all modules
-    local uiData = UI.initialize()
+    -- Inject dependencies into UI module
+    local uiData = UI.initialize({
+        Features = Features,
+        Settings = Settings,
+        Utils = Utils
+    })
 
     -- Start core features with default config
     Features.applyVisual(true)
