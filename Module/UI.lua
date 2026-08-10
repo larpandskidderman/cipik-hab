@@ -1325,10 +1325,15 @@ end
 
 -- =======================================
 -- SET UI CALLBACKS IN SETTINGS
-Settings:setUICallbacks({
-    Notify = notify,
-    UpdateUI = updateUIFromConfig
-})
+-- This must be called AFTER Settings is injected via initialize()
+local function registerUICallbacks()
+    if Settings and type(Settings.setUICallbacks) == "function" then
+        Settings:setUICallbacks({
+            Notify = notify,
+            UpdateUI = updateUIFromConfig
+        })
+    end
+end
 
 -- =======================================
 -- MAIN INITIALIZATION
@@ -1349,6 +1354,9 @@ local function initialize(deps)
     createMiscTab(Tabs)
     createVisualTab(Tabs)
     createSettingsTab(Tabs, Window)
+
+    -- Register UI callbacks after all dependencies are injected
+    registerUICallbacks()
 
     return {
         Window = Window,
