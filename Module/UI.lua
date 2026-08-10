@@ -26,8 +26,24 @@ local VexUI = loadstring(game:HttpGet(
 -- =======================================
 -- CONSTANTS
 local CIVIC_LOGO_ASSET = "rbxassetid://97658052504663"
-local EmoteList = Features.EmoteList
-local MaskedPowers = Features.MaskedPowers
+
+-- Define EmoteList and MaskedPowers locally since Features may not be initialized yet
+local MaskedPowers = {"Cobra", "Richter", "Brandon", "Rabbit", "Alex"}
+
+local EmoteList = {
+    "Mannrobics",
+    "Arm Swing",
+    "Schadenfreude",
+    "Kyoufuu",
+    "Backflip",
+    "Griddy",
+    "Friday Night",
+    "Floating Rest",
+    "OnePlays",
+    "Quick Combo",
+    "WarCry",
+    "Wave"
+}
 
 -- =======================================
 -- UI REFERENCES

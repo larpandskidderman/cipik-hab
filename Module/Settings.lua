@@ -8,6 +8,24 @@
 -- Dependencies will be injected via setFeatures/setUI
 local Features = nil
 
+-- Define EmoteList and MaskedPowers locally since Features may not be initialized yet
+local MaskedPowers = {"Cobra", "Richter", "Brandon", "Rabbit", "Alex"}
+
+local EmoteList = {
+    "Mannrobics",
+    "Arm Swing",
+    "Schadenfreude",
+    "Kyoufuu",
+    "Backflip",
+    "Griddy",
+    "Friday Night",
+    "Floating Rest",
+    "OnePlays",
+    "Quick Combo",
+    "WarCry",
+    "Wave"
+}
+
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
@@ -309,7 +327,7 @@ function Settings:Load(name)
     CurrentConfig.AutoSpamAttack = validateValue("AutoSpamAttack", false, function(v) return type(v) == "boolean" end)
     CurrentConfig.AttackDelay = validateValue("AttackDelay", 0.45, function(v) return type(v) == "number" end)
     CurrentConfig.MaskedPower = validateValue("MaskedPower", "Cobra", function(v)
-        for _, p in pairs(Features.MaskedPowers) do
+        for _, p in pairs(MaskedPowers) do
             if p == v then return true end
         end
         return false
@@ -329,7 +347,7 @@ function Settings:Load(name)
     CurrentConfig.JumpPowerEnabled = validateValue("JumpPowerEnabled", false, function(v) return type(v) == "boolean" end)
     CurrentConfig.JumpPowerValue = validateValue("JumpPowerValue", 50, function(v) return type(v) == "number" end)
     CurrentConfig.EmoteSelected = validateValue("EmoteSelected", "Mannrobics", function(v)
-        for _, e in pairs(Features.EmoteList) do
+        for _, e in pairs(EmoteList) do
             if e == v then return true end
         end
         return false
