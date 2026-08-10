@@ -55,6 +55,13 @@ local function getConfigFilePath(name)
     return folder .. "/" .. name .. ".json"
 end
 
+-- Auto-save file path
+local function getAutoSavePath()
+    local folder = getConfigFolder()
+    if not folder then return nil end
+    return folder .. "/autosave.json"
+end
+
 local function saveConfigToFile(name, data)
     if not isFileSystemAvailable() then return false end
     local path = getConfigFilePath(name)
@@ -70,6 +77,40 @@ end
 local function loadConfigFromFile(name)
     if not isFileSystemAvailable() then return nil end
     local path = getConfigFilePath(name)
+    if not path then return nil end
+    if not isfile(path) then return nil end
+    local success, result = pcall(function()
+        local json = readfile(path)
+        return HttpService:JSONDecode(json)
+    end)
+    if success then
+        return result
+    end
+    return nil
+end
+
+-- Auto-save functions
+local function saveAutoSettings()
+    if not isFileSystemAvailable() then return false end
+    local path = getAutoSavePath()
+    if not path then return false end
+    local success, result = pcall(function()
+        local configData = {
+            Settings = deepCopy(CurrentConfig),
+            ConfigName = ConfigName,
+            AutoLoadEnabled = AutoLoadEnabled,
+            AutoLoadConfigName = AutoLoadConfigName
+        }
+        local json = HttpService:JSONEncode(configData)
+        writefile(path, json)
+        return true
+    end)
+    return success and result
+end
+
+local function loadAutoSettings()
+    if not isFileSystemAvailable() then return nil end
+    local path = getAutoSavePath()
     if not path then return nil end
     if not isfile(path) then return nil end
     local success, result = pcall(function()
@@ -250,6 +291,8 @@ function Settings:Save(name)
 
     if isFileSystemAvailable() then
         local success = saveConfigToFile(configName, configData)
+        -- Also auto-save to autosave.json
+        saveAutoSettings()
         if success then
             if UICallbacks.Notify then
                 UICallbacks.Notify("Setting saved: " .. configName)
@@ -559,6 +602,11 @@ end
 -- Set Features module for remote compatibility
 function Settings:setFeatures(featuresModule)
     Features = featuresModule
+end
+
+-- Export auto-save functions for Main.lua access
+function Settings:getAutoSaveData()
+    return loadAutoSettings()
 end
 
 -- =======================================
