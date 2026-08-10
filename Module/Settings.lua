@@ -161,7 +161,6 @@ local DefaultConfig = {
     MoonwalkSpamSpeed = 30,
     MoonwalkIntensity = 35,
     MoonwalkEnabled = false,
-    SelfHealEnabled = false,
 
     -- Killer
     AutoStalk = false,
