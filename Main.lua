@@ -64,6 +64,66 @@ local function initializeCivicHub()
     task.wait(0.5)
     Settings:SetIsInitialLoad(true)
 
+    -- Try to load auto-save first (local environment settings)
+    local autoSaveData = Settings:getAutoSaveData()
+    if autoSaveData and autoSaveData.Settings then
+        -- Apply auto-saved settings
+        local loadedConfig = autoSaveData.Settings
+        for key, value in pairs(loadedConfig) do
+            if CurrentConfig[key] ~= nil then
+                CurrentConfig[key] = value
+            end
+        end
+        if autoSaveData.ConfigName then
+            ConfigName = autoSaveData.ConfigName
+        end
+        if autoSaveData.AutoLoadEnabled ~= nil then
+            AutoLoadEnabled = autoSaveData.AutoLoadEnabled
+        end
+        if autoSaveData.AutoLoadConfigName then
+            AutoLoadConfigName = autoSaveData.AutoLoadConfigName
+        end
+        
+        -- Apply features with auto-saved settings
+        Features.applyVisual(true)
+        Features.applyOptimization(true)
+        Features.applyUnlimitedZoom()
+        Features.applyCameraFOV()
+        Features.applyNoScreenEffects()
+        if CurrentConfig.FPSBoost then
+            Features.applyFPSBoost()
+        end
+        if CurrentConfig.ReduceGraphics then
+            Features.applyReduceGraphics()
+        end
+        Features.applyWalkSpeed()
+        Features.applyJumpPower()
+        Features.toggleNoClip(CurrentConfig.NoClip)
+        Features.startGunAim()
+        Features.startAttackAim()
+        Features.startSkillCheck()
+        Features.startAutoStalk()
+        
+        if CurrentConfig.MoonwalkShowButton then
+            Features.createMoonwalkButton()
+        else
+            Features.removeMoonwalkButton()
+        end
+        
+        if CurrentConfig.ShowEmoteButton then
+            Features.createEmoteButton()
+        else
+            Features.removeEmoteButton()
+        end
+        
+        if CurrentConfig.JerkTool then
+            Features.createJerkTool()
+        end
+        
+        UI.notify("Local settings loaded")
+    end
+
+    -- Then try named auto-load config if enabled
     local autoLoadEnabled = Settings:GetAutoLoad()
     local autoLoadConfigName = Settings:GetAutoLoadConfig()
 
