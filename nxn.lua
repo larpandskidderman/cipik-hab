@@ -3157,7 +3157,16 @@ Tabs.Misc:Button({
                     v:Destroy()
                 end
             end
-            hum:ApplyDescriptionClientServer(desc)
+            -- Gunakan ApplyDescription untuk kompatibilitas yang lebih baik
+            local applySuccess = pcall(function()
+                hum:ApplyDescription(desc)
+            end)
+            if not applySuccess then
+                -- Fallback ke ApplyDescriptionClientServer jika ApplyDescription gagal
+                pcall(function()
+                    hum:ApplyDescriptionClientServer(desc)
+                end)
+            end
             VexUI:Notification({
                 Title = "Civic Hub",
                 Desc = "Avatar copied from: " .. username,
