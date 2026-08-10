@@ -1,1 +1,0 @@
-Nothing needs to be added to .gitignore since the changes only include Lua source files (.lua) which are legitimate source code files and should not be ignored.
