@@ -1,7 +1,15 @@
 ```
-# Compiled and binary files
+# Compiled and build artifacts
 *.pyc
 __pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
 
 # Dependencies
 node_modules/
@@ -9,17 +17,13 @@ venv/
 .venv/
 .env
 .env.local
-*.env.*
+.env.*
 
-# Build artifacts
-dist/
-build/
-target/
-
-# Logs and temporary files
+# Logs and temp files
 *.log
 *.tmp
 *.swp
+*.swo
 
 # Editors
 .vscode/
@@ -29,6 +33,27 @@ target/
 .coverage
 coverage/
 htmlcov/
+
+# Distribution / packaging
+dist/
+build/
+*.tar.gz
+*.zip
+*.gz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
 
 # System files
 .DS_Store
