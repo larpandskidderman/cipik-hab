@@ -71,6 +71,7 @@ local UIRefs = {
 
     -- Player Tab
     AutoSkillCheck_Toggle = nil,
+    SkillCheckMode_Dropdown = nil,
     AutoWiggle_Toggle = nil,
     AutoFlee_Toggle = nil,
     AntiKnockDown_Toggle = nil,
@@ -295,7 +296,7 @@ local function createESPTab(Tabs)
         Title = "ESP Radius",
         Value = {
             Min = 10,
-            Max = 1000,
+            Max = 5000,
             Default = 100,
         },
         Step = 1,
@@ -413,6 +414,16 @@ local function createPlayerTab(Tabs)
             else
                 Features.stopSkillCheck()
             end
+        end
+    })
+
+    UIRefs.SkillCheckMode_Dropdown = Tabs.Player:Dropdown({
+        Title = "Skill Check Mode",
+        Option = {"Instant", "Legit", "Random"},
+        Value = "Legit",
+        Multi = false,
+        Callback = function(v)
+            Settings:Set("SkillCheckMode", v)
         end
     })
 
