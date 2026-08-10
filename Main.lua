@@ -5,6 +5,8 @@
 -- VERSION 2.0.0
 -- =============================================
 
+local BaseURL = "https://raw.githubusercontent.com/larpandskidderman/cipik-hab/main/Module/"
+
 local Root = script.Parent
 
 -- =======================================
