@@ -1,74 +1,159 @@
+--!strict
 -- =============================================
 -- CIVIC HUB - VIOLENCE DISTRICT
 -- MODULE: SETTINGS
--- BUILT BY VINZEE
--- VERSION 2.0.0
+-- BUILT BY VINZEE (REFACTORED BY ZEX)
+-- VERSION 3.0.0
 -- =============================================
 
--- Dependencies will be injected via setFeatures/setUI
-local Features = nil
+-- =============================================
+-- TYPE DEFINITIONS
+-- =============================================
 
--- Define EmoteList and MaskedPowers locally since Features may not be initialized yet
-local MaskedPowers = {"Cobra", "Richter", "Brandon", "Rabbit", "Alex"}
+export type ThemeName = "Dark" | "Light" | "Forest" | "Amethyst"
+export type CrosshairStyle = "Plus" | "Dot" | "Circle"
+export type SkillCheckMode = "Instant" | "Legit" | "Random"
+export type AimTargetType = "Killer" | "Survivor" | "SCP"
+export type AimPartType = "Head" | "HumanoidRootPart" | "Torso"
+export type EmoteName = "Mannrobics" | "Arm Swing" | "Schadenfreude" | "Kyoufuu" | "Backflip" | "Griddy" | "Friday Night" | "Floating Rest" | "OnePlays" | "Quick Combo" | "WarCry" | "Wave"
+export type MaskedPowerName = "Cobra" | "Richter" | "Brandon" | "Rabbit" | "Alex"
 
-local EmoteList = {
-    "Mannrobics",
-    "Arm Swing",
-    "Schadenfreude",
-    "Kyoufuu",
-    "Backflip",
-    "Griddy",
-    "Friday Night",
-    "Floating Rest",
-    "OnePlays",
-    "Quick Combo",
-    "WarCry",
-    "Wave"
+export type SettingsData = {
+    -- ESP
+    SurvivorESP: boolean,
+    KillerESP: boolean,
+    GeneratorESP: boolean,
+    SCPESP: boolean,
+    PalletESP: boolean,
+    WindowESP: boolean,
+    ESPRadius: number,
+
+    -- ESP Status
+    StatusESPEnabled: boolean,
+    StatusShowName: boolean,
+    StatusShowDistance: boolean,
+    StatusShowHealth: boolean,
+    StatusRadius: number,
+
+    -- Crosshair
+    CrosshairEnabled: boolean,
+    CrosshairStyle: CrosshairStyle,
+    CrosshairX: number,
+    CrosshairY: number,
+
+    -- Player
+    AutoSkillCheck: boolean,
+    SkillCheckMode: SkillCheckMode,
+    AutoWiggle: boolean,
+    AutoFlee: boolean,
+    AntiKnockDown: boolean,
+    FastVault: boolean,
+    VaultSpeed: number,
+    MoonwalkShowButton: boolean,
+    MoonwalkKeybind: string?,
+    MoonwalkSpamSpeed: number,
+    MoonwalkIntensity: number,
+    MoonwalkEnabled: boolean,
+
+    -- Killer
+    AutoStalk: boolean,
+    AimLockAttack: boolean,
+    AutoKillAll: boolean,
+    AutoSpamAttack: boolean,
+    AttackDelay: number,
+    MaskedPower: MaskedPowerName,
+
+    -- Parry
+    AutoParry: boolean,
+    ShowParryRange: boolean,
+    ParryDistance: number,
+    FaceSensitivity: number,
+
+    -- AimBot
+    AimLockEnabled: boolean,
+    AimTarget: AimTargetType,
+    AimPart: AimPartType,
+    AimFOV: number,
+    AimPrediction: number,
+
+    -- Movement
+    WalkSpeedEnabled: boolean,
+    WalkSpeedValue: number,
+    NoClip: boolean,
+    JumpPowerEnabled: boolean,
+    JumpPowerValue: number,
+
+    -- Emote
+    EmoteSelected: EmoteName,
+    ShowEmoteButton: boolean,
+
+    -- Fun
+    JerkTool: boolean,
+
+    -- Visual
+    Fullbright: boolean,
+    NoShadow: boolean,
+    LowGraphics: boolean,
+    NoScreenEffects: boolean,
+    CleanSky: boolean,
+    ClockTime: number,
+    Brightness: number,
+    FPSBoost: boolean,
+    ReduceGraphics: boolean,
+
+    -- Zoom
+    UnlimitedZoom: boolean,
+    MaxZoomDistance: number,
+    CustomFOV: boolean,
+    CameraFOV: number,
+
+    -- Theme
+    Theme: ThemeName,
+    Transparent: boolean,
 }
 
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-local LocalPlayer = Players.LocalPlayer
+export type PersistenceData = {
+    Settings: SettingsData,
+    ConfigName: string,
+    AutoLoadEnabled: boolean,
+    AutoLoadConfigName: string?,
+    LastSaved: number?,
+    Version: string,
+}
 
--- =======================================
--- PERSISTENCE SYSTEM
--- Folder: CivicHub/
--- File: CivicHub/settings.json
+export type UICallbacks = {
+    UpdateUI: ((SettingsData) -> ())?,
+    Notify: ((string) -> ())?,
+}
 
-local PERSISTENCE_FOLDER = "CivicHub"
-local PERSISTENCE_FILE = "settings.json"
-local SAVE_DEBOUNCE_TIME = 0.5 -- seconds to wait before saving after change
-local IsSaving = false
-local PendingSave = false
-local LastSaveTime = 0
+-- =============================================
+-- CONSTANTS
+-- =============================================
 
--- Filesystem helpers for persistence
-local function isFileSystemAvailable()
-    return pcall(function()
-        return writefile and readfile and isfile and makefolder and isfolder
-    end)
-end
+local CONSTANTS = {
+    PERSISTENCE_FOLDER = "CivicHub",
+    PERSISTENCE_FILE = "settings.json",
+    SAVE_DEBOUNCE_TIME = 0.5,
+    VERSION = "3.0.0",
 
-local function ensurePersistenceFolder()
-    if not isFileSystemAvailable() then return false end
-    pcall(function()
-        if not isfolder(PERSISTENCE_FOLDER) then
-            makefolder(PERSISTENCE_FOLDER)
-        end
-    end)
-    return true
-end
+    VALID_THEMES = { "Dark", "Light", "Forest", "Amethyst" },
+    VALID_CROSSHAIR_STYLES = { "Plus", "Dot", "Circle" },
+    VALID_SKILLCHECK_MODES = { "Instant", "Legit", "Random" },
+    VALID_AIM_TARGETS = { "Killer", "Survivor", "SCP" },
+    VALID_AIM_PARTS = { "Head", "HumanoidRootPart", "Torso" },
+    VALID_EMOTES = {
+        "Mannrobics", "Arm Swing", "Schadenfreude", "Kyoufuu",
+        "Backflip", "Griddy", "Friday Night", "Floating Rest",
+        "OnePlays", "Quick Combo", "WarCry", "Wave"
+    },
+    VALID_MASKED_POWERS = { "Cobra", "Richter", "Brandon", "Rabbit", "Alex" },
+}
 
-local function getPersistenceFilePath()
-    if not ensurePersistenceFolder() then return nil end
-    return PERSISTENCE_FOLDER .. "/" .. PERSISTENCE_FILE
-end
+-- =============================================
+-- DEFAULT SETTINGS
+-- =============================================
 
--- =======================================
--- DEFAULT SETTINGS TABLE
--- All settings should be defined here for easy management
-local DEFAULT_SETTINGS = {
-    -- ESP
+local DEFAULT_SETTINGS: SettingsData = {
     SurvivorESP = false,
     KillerESP = false,
     GeneratorESP = false,
@@ -77,20 +162,17 @@ local DEFAULT_SETTINGS = {
     WindowESP = false,
     ESPRadius = 5000,
 
-    -- ESP Status
     StatusESPEnabled = false,
     StatusShowName = true,
     StatusShowDistance = true,
     StatusShowHealth = false,
     StatusRadius = 5000,
 
-    -- Crosshair
     CrosshairEnabled = false,
     CrosshairStyle = "Plus",
     CrosshairX = 0,
     CrosshairY = 0,
 
-    -- Player
     AutoSkillCheck = false,
     SkillCheckMode = "Legit",
     AutoWiggle = false,
@@ -104,7 +186,6 @@ local DEFAULT_SETTINGS = {
     MoonwalkIntensity = 35,
     MoonwalkEnabled = false,
 
-    -- Killer
     AutoStalk = false,
     AimLockAttack = false,
     AutoKillAll = false,
@@ -112,34 +193,28 @@ local DEFAULT_SETTINGS = {
     AttackDelay = 0.45,
     MaskedPower = "Cobra",
 
-    -- Parry
     AutoParry = false,
     ShowParryRange = false,
     ParryDistance = 15,
     FaceSensitivity = 0.7,
 
-    -- AimBot
     AimLockEnabled = false,
     AimTarget = "Killer",
     AimPart = "HumanoidRootPart",
     AimFOV = 250,
     AimPrediction = 0.12,
 
-    -- Movement
     WalkSpeedEnabled = false,
     WalkSpeedValue = 17.6,
     NoClip = false,
     JumpPowerEnabled = false,
     JumpPowerValue = 50,
 
-    -- Emote
     EmoteSelected = "Mannrobics",
     ShowEmoteButton = false,
 
-    -- Fun
     JerkTool = false,
 
-    -- Visual
     Fullbright = false,
     NoShadow = false,
     LowGraphics = false,
@@ -150,182 +225,394 @@ local DEFAULT_SETTINGS = {
     FPSBoost = false,
     ReduceGraphics = false,
 
-    -- Zoom
     UnlimitedZoom = false,
     MaxZoomDistance = 1000,
     CustomFOV = false,
     CameraFOV = 70,
 
-    -- Theme
     Theme = "Dark",
     Transparent = false,
 }
 
--- =======================================
--- CURRENT STATE
-local CurrentConfig = {}
-local ConfigStorage = {}
-local ConfigName = "MyConfig"
-local AutoLoadEnabled = false
-local AutoLoadConfigName = nil
-local IsInitialLoad = true
-local PersistenceInitialized = false
+-- =============================================
+-- SERVICES
+-- =============================================
 
--- =======================================
--- DEEP COPY
-local function deepCopy(t)
-    local copy = {}
-    for k, v in pairs(t) do
-        if type(v) == "table" then
-            copy[k] = deepCopy(v)
-        else
-            copy[k] = v
-        end
-    end
-    return copy
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+
+-- =============================================
+-- STATE
+-- =============================================
+
+local CurrentConfig: SettingsData = table.clone(DEFAULT_SETTINGS) -- shallow copy cukup karena semua primitive
+local ConfigName: string = "MyConfig"
+local AutoLoadEnabled: boolean = false
+local AutoLoadConfigName: string? = nil
+local IsInitialLoad: boolean = true
+local PersistenceInitialized: boolean = false
+
+-- Features module (injected)
+local Features: any = nil
+
+-- UI Callbacks
+local UICallbacks: UICallbacks = {}
+
+-- Save mutex
+local SaveMutex = {
+    locked = false,
+    pending = false,
+    timer = nil :: thread?,
+}
+
+-- =============================================
+-- FILESYSTEM HELPERS
+-- =============================================
+
+local function isFileSystemAvailable(): boolean
+    local success = pcall(function()
+        return writefile and readfile and isfile and makefolder and isfolder
+    end)
+    return success
 end
 
--- =======================================
--- PERSISTENCE FUNCTIONS
-
--- Initialize default settings
-local function initializeDefaultSettings()
-    CurrentConfig = deepCopy(DEFAULT_SETTINGS)
-end
-
--- Save settings to JSON file (CivicHub/settings.json)
-local function SaveSettingsInternal()
+local function ensurePersistenceFolder(): boolean
     if not isFileSystemAvailable() then return false end
-    
-    local path = getPersistenceFilePath()
+
+    local success, err = pcall(function()
+        if not isfolder(CONSTANTS.PERSISTENCE_FOLDER) then
+            makefolder(CONSTANTS.PERSISTENCE_FOLDER)
+        end
+    end)
+
+    if not success then
+        warn("[Civic Hub] Failed to create persistence folder:", err)
+        return false
+    end
+    return true
+end
+
+local function getPersistencePath(): string?
+    if not ensurePersistenceFolder() then return nil end
+    return CONSTANTS.PERSISTENCE_FOLDER .. "/" .. CONSTANTS.PERSISTENCE_FILE
+end
+
+-- =============================================
+-- SAFE FEATURES CALL
+-- =============================================
+
+local function safeCallFeatures(method: string, ...): boolean
+    if not Features then
+        warn("[Civic Hub] Features module not initialized, skipping:", method)
+        return false
+    end
+
+    local fn = Features[method]
+    if type(fn) ~= "function" then
+        warn("[Civic Hub] Method not found in Features:", method)
+        return false
+    end
+
+    local success, err = pcall(fn, ...)
+    if not success then
+        warn("[Civic Hub] Error in Features." .. method .. ":", err)
+        return false
+    end
+    return true
+end
+
+-- =============================================
+-- SETTINGS VALIDATION
+-- =============================================
+
+local function isValidTheme(v: any): boolean
+    if type(v) ~= "string" then return false end
+    for _, valid in ipairs(CONSTANTS.VALID_THEMES) do
+        if v == valid then return true end
+    end
+    return false
+end
+
+local function isValidCrosshairStyle(v: any): boolean
+    if type(v) ~= "string" then return false end
+    for _, valid in ipairs(CONSTANTS.VALID_CROSSHAIR_STYLES) do
+        if v == valid then return true end
+    end
+    return false
+end
+
+local function isValidSkillCheckMode(v: any): boolean
+    if type(v) ~= "string" then return false end
+    for _, valid in ipairs(CONSTANTS.VALID_SKILLCHECK_MODES) do
+        if v == valid then return true end
+    end
+    return false
+end
+
+local function isValidAimTarget(v: any): boolean
+    if type(v) ~= "string" then return false end
+    for _, valid in ipairs(CONSTANTS.VALID_AIM_TARGETS) do
+        if v == valid then return true end
+    end
+    return false
+end
+
+local function isValidAimPart(v: any): boolean
+    if type(v) ~= "string" then return false end
+    for _, valid in ipairs(CONSTANTS.VALID_AIM_PARTS) do
+        if v == valid then return true end
+    end
+    return false
+end
+
+local function isValidEmote(v: any): boolean
+    if type(v) ~= "string" then return false end
+    for _, valid in ipairs(CONSTANTS.VALID_EMOTES) do
+        if v == valid then return true end
+    end
+    return false
+end
+
+local function isValidMaskedPower(v: any): boolean
+    if type(v) ~= "string" then return false end
+    for _, valid in ipairs(CONSTANTS.VALID_MASKED_POWERS) do
+        if v == valid then return true end
+    end
+    return false
+end
+
+-- =============================================
+-- SETTINGS VALIDATOR TABLE
+-- =============================================
+
+local VALIDATORS = {
+    SurvivorESP = function(v) return type(v) == "boolean" end,
+    KillerESP = function(v) return type(v) == "boolean" end,
+    GeneratorESP = function(v) return type(v) == "boolean" end,
+    SCPESP = function(v) return type(v) == "boolean" end,
+    PalletESP = function(v) return type(v) == "boolean" end,
+    WindowESP = function(v) return type(v) == "boolean" end,
+    ESPRadius = function(v) return type(v) == "number" and v > 0 end,
+
+    StatusESPEnabled = function(v) return type(v) == "boolean" end,
+    StatusShowName = function(v) return type(v) == "boolean" end,
+    StatusShowDistance = function(v) return type(v) == "boolean" end,
+    StatusShowHealth = function(v) return type(v) == "boolean" end,
+    StatusRadius = function(v) return type(v) == "number" and v > 0 end,
+
+    CrosshairEnabled = function(v) return type(v) == "boolean" end,
+    CrosshairStyle = isValidCrosshairStyle,
+    CrosshairX = function(v) return type(v) == "number" end,
+    CrosshairY = function(v) return type(v) == "number" end,
+
+    AutoSkillCheck = function(v) return type(v) == "boolean" end,
+    SkillCheckMode = isValidSkillCheckMode,
+    AutoWiggle = function(v) return type(v) == "boolean" end,
+    AutoFlee = function(v) return type(v) == "boolean" end,
+    AntiKnockDown = function(v) return type(v) == "boolean" end,
+    FastVault = function(v) return type(v) == "boolean" end,
+    VaultSpeed = function(v) return type(v) == "number" and v > 0 end,
+    MoonwalkShowButton = function(v) return type(v) == "boolean" end,
+    MoonwalkKeybind = function(v) return v == nil or type(v) == "string" end,
+    MoonwalkSpamSpeed = function(v) return type(v) == "number" and v > 0 end,
+    MoonwalkIntensity = function(v) return type(v) == "number" end,
+    MoonwalkEnabled = function(v) return type(v) == "boolean" end,
+
+    AutoStalk = function(v) return type(v) == "boolean" end,
+    AimLockAttack = function(v) return type(v) == "boolean" end,
+    AutoKillAll = function(v) return type(v) == "boolean" end,
+    AutoSpamAttack = function(v) return type(v) == "boolean" end,
+    AttackDelay = function(v) return type(v) == "number" and v >= 0 end,
+    MaskedPower = isValidMaskedPower,
+
+    AutoParry = function(v) return type(v) == "boolean" end,
+    ShowParryRange = function(v) return type(v) == "boolean" end,
+    ParryDistance = function(v) return type(v) == "number" and v > 0 end,
+    FaceSensitivity = function(v) return type(v) == "number" and v >= 0 and v <= 1 end,
+
+    AimLockEnabled = function(v) return type(v) == "boolean" end,
+    AimTarget = isValidAimTarget,
+    AimPart = isValidAimPart,
+    AimFOV = function(v) return type(v) == "number" and v > 0 end,
+    AimPrediction = function(v) return type(v) == "number" and v >= 0 end,
+
+    WalkSpeedEnabled = function(v) return type(v) == "boolean" end,
+    WalkSpeedValue = function(v) return type(v) == "number" and v > 0 end,
+    NoClip = function(v) return type(v) == "boolean" end,
+    JumpPowerEnabled = function(v) return type(v) == "boolean" end,
+    JumpPowerValue = function(v) return type(v) == "number" and v > 0 end,
+
+    EmoteSelected = isValidEmote,
+    ShowEmoteButton = function(v) return type(v) == "boolean" end,
+
+    JerkTool = function(v) return type(v) == "boolean" end,
+
+    Fullbright = function(v) return type(v) == "boolean" end,
+    NoShadow = function(v) return type(v) == "boolean" end,
+    LowGraphics = function(v) return type(v) == "boolean" end,
+    NoScreenEffects = function(v) return type(v) == "boolean" end,
+    CleanSky = function(v) return type(v) == "boolean" end,
+    ClockTime = function(v) return type(v) == "number" and v >= 0 and v <= 24 end,
+    Brightness = function(v) return type(v) == "number" and v >= 0 end,
+    FPSBoost = function(v) return type(v) == "boolean" end,
+    ReduceGraphics = function(v) return type(v) == "boolean" end,
+
+    UnlimitedZoom = function(v) return type(v) == "boolean" end,
+    MaxZoomDistance = function(v) return type(v) == "number" and v > 0 end,
+    CustomFOV = function(v) return type(v) == "boolean" end,
+    CameraFOV = function(v) return type(v) == "number" and v > 0 end,
+
+    Theme = isValidTheme,
+    Transparent = function(v) return type(v) == "boolean" end,
+}
+
+-- =============================================
+-- VALIDATION HELPER
+-- =============================================
+
+local function validateAndApplyValue(
+    target: SettingsData,
+    key: string,
+    value: any,
+    default: any
+): boolean
+    local validator = VALIDATORS[key]
+    if not validator then
+        warn("[Civic Hub] Unknown setting key:", key)
+        return false
+    end
+
+    if validator(value) then
+        target[key] = value
+        return true
+    else
+        target[key] = default
+        return false
+    end
+end
+
+-- =============================================
+-- PERSISTENCE - INTERNAL
+-- =============================================
+
+local function serializeConfig(): PersistenceData
+    return {
+        Settings = table.clone(CurrentConfig),
+        ConfigName = ConfigName,
+        AutoLoadEnabled = AutoLoadEnabled,
+        AutoLoadConfigName = AutoLoadConfigName,
+        LastSaved = os.time(),
+        Version = CONSTANTS.VERSION,
+    }
+end
+
+local function deserializeConfig(data: any): PersistenceData?
+    if type(data) ~= "table" then return nil end
+    if type(data.Settings) ~= "table" then return nil end
+
+    return data :: PersistenceData
+end
+
+local function saveSettingsInternal(): boolean
+    if not isFileSystemAvailable() then return false end
+
+    local path = getPersistencePath()
     if not path then return false end
-    
+
+    local configData = serializeConfig()
+
     local success, result = pcall(function()
-        local configData = {
-            Settings = deepCopy(CurrentConfig),
-            ConfigName = ConfigName,
-            AutoLoadEnabled = AutoLoadEnabled,
-            AutoLoadConfigName = AutoLoadConfigName,
-            LastSaved = os.time()
-        }
         local json = HttpService:JSONEncode(configData)
         writefile(path, json)
         return true
     end)
-    
-    return success and result
+
+    if not success then
+        warn("[Civic Hub] Save failed:", result)
+        return false
+    end
+
+    return result
 end
 
--- Throttled save to avoid too frequent writes
-local function scheduleSave()
-    if IsSaving then
-        PendingSave = true
-        return
-    end
-    
-    local currentTime = tick()
-    local timeSinceLastSave = currentTime - LastSaveTime
-    
-    if timeSinceLastSave < SAVE_DEBOUNCE_TIME then
-        PendingSave = true
-        task.delay(SAVE_DEBOUNCE_TIME - timeSinceLastSave, function()
-            if PendingSave then
-                PendingSave = false
-                scheduleSave()
-            end
-        end)
-        return
-    end
-    
-    IsSaving = true
-    LastSaveTime = currentTime
-    
-    local success = SaveSettingsInternal()
-    
-    IsSaving = false
-    
-    if PendingSave then
-        PendingSave = false
-        scheduleSave()
-    end
-    
-    return success
-end
-
--- Public SaveSettings function
-local function SaveSettings()
-    return SaveSettingsInternal()
-end
-
--- Load settings from JSON file
-local function LoadSettingsInternal()
+local function loadSettingsInternal(): PersistenceData?
     if not isFileSystemAvailable() then return nil end
-    
-    local path = getPersistenceFilePath()
+
+    local path = getPersistencePath()
     if not path then return nil end
     if not isfile(path) then return nil end
-    
+
     local success, result = pcall(function()
         local json = readfile(path)
         return HttpService:JSONDecode(json)
     end)
-    
-    if success then
-        return result
+
+    if not success then
+        warn("[Civic Hub] Load failed:", result)
+        return nil
     end
-    
-    return nil
+
+    return deserializeConfig(result)
 end
 
--- Public LoadSettings function
-local function LoadSettings()
-    return LoadSettingsInternal()
-end
+-- =============================================
+-- PERSISTENCE - PUBLIC (THROTTLED)
+-- =============================================
 
--- Update a single setting and auto-save
-local function UpdateSetting(key, value)
-    if DEFAULT_SETTINGS[key] == nil then
-        warn("[Civic Hub] Unknown setting key: " .. tostring(key))
-        return false
+local function scheduleSave()
+    if SaveMutex.locked then
+        SaveMutex.pending = true
+        return
     end
-    
-    CurrentConfig[key] = value
-    scheduleSave()
-    return true
-end
 
--- Reset all settings to default
-local function ResetSettings()
-    initializeDefaultSettings()
-    SaveSettingsInternal()
-    return true
-end
+    SaveMutex.locked = true
 
--- Merge loaded settings with defaults (preserves old valid settings, adds new defaults)
-local function mergeSettings(loadedData)
-    if not loadedData or not loadedData.Settings then
-        return false
+    if SaveMutex.timer then
+        task.cancel(SaveMutex.timer)
+        SaveMutex.timer = nil
     end
-    
+
+    SaveMutex.timer = task.delay(CONSTANTS.SAVE_DEBOUNCE_TIME, function()
+        SaveMutex.timer = nil
+        SaveMutex.locked = false
+
+        local success = saveSettingsInternal()
+
+        if SaveMutex.pending then
+            SaveMutex.pending = false
+            scheduleSave()
+        end
+
+        return success
+    end)
+end
+
+-- =============================================
+-- SETTINGS MANAGEMENT - INTERNAL
+-- =============================================
+
+local function initializeDefaultSettings()
+    CurrentConfig = table.clone(DEFAULT_SETTINGS)
+end
+
+local function mergeSettings(loadedData: PersistenceData): boolean
     local loadedSettings = loadedData.Settings
-    
-    -- Apply each setting from loaded data if it exists and is valid
+
+    -- Start with defaults
+    local newConfig = table.clone(DEFAULT_SETTINGS)
+
+    -- Apply each setting with validation
     for key, defaultValue in pairs(DEFAULT_SETTINGS) do
-        if loadedSettings[key] ~= nil then
-            local loadedValue = loadedSettings[key]
-            -- Basic type validation
-            if type(loadedValue) == type(defaultValue) then
-                CurrentConfig[key] = loadedValue
-            else
-                CurrentConfig[key] = defaultValue
-            end
-        else
-            -- Use default for missing settings (backward compatibility)
-            CurrentConfig[key] = defaultValue
+        local loadedValue = loadedSettings[key]
+        if loadedValue ~= nil then
+            validateAndApplyValue(newConfig, key, loadedValue, defaultValue)
         end
     end
-    
-    -- Load metadata if available
+
+    CurrentConfig = newConfig
+
+    -- Load metadata
     if loadedData.ConfigName then
         ConfigName = loadedData.ConfigName
     end
@@ -335,442 +622,248 @@ local function mergeSettings(loadedData)
     if loadedData.AutoLoadConfigName then
         AutoLoadConfigName = loadedData.AutoLoadConfigName
     end
-    
+
     return true
 end
 
--- Auto-load settings on startup
-local function AutoLoadSettings()
-    initializeDefaultSettings()
-    
-    local loadedData = LoadSettingsInternal()
-    if loadedData then
-        local success = mergeSettings(loadedData)
-        if success then
-            PersistenceInitialized = true
-            return true
-        end
-    end
-    
-    -- If no saved settings or merge failed, use defaults
-    initializeDefaultSettings()
-    PersistenceInitialized = true
-    return false
-end
+-- =============================================
+-- FEATURES APPLICATION
+-- =============================================
 
--- =======================================
--- FILESYSTEM HELPERS (kept for config management)
-local function getConfigFolder()
-    if not isFileSystemAvailable() then return nil end
-    local folder = "CivicHub_Configs"
-    pcall(function()
-        if not isfolder(folder) then
-            makefolder(folder)
-        end
-    end)
-    return folder
-end
+local function applyAllFeatures()
+    safeCallFeatures("applyVisual", true)
+    safeCallFeatures("applyOptimization", true)
+    safeCallFeatures("applyUnlimitedZoom")
+    safeCallFeatures("applyCameraFOV")
+    safeCallFeatures("applyNoScreenEffects")
 
-local function getConfigFilePath(name)
-    local folder = getConfigFolder()
-    if not folder then return nil end
-    return folder .. "/" .. name .. ".json"
-end
-
--- Auto-save file path
-local function getAutoSavePath()
-    local folder = getConfigFolder()
-    if not folder then return nil end
-    return folder .. "/autosave.json"
-end
-
-local function saveConfigToFile(name, data)
-    if not isFileSystemAvailable() then return false end
-    local path = getConfigFilePath(name)
-    if not path then return false end
-    local success, result = pcall(function()
-        local json = HttpService:JSONEncode(data)
-        writefile(path, json)
-        return true
-    end)
-    return success and result
-end
-
-local function loadConfigFromFile(name)
-    if not isFileSystemAvailable() then return nil end
-    local path = getConfigFilePath(name)
-    if not path then return nil end
-    if not isfile(path) then return nil end
-    local success, result = pcall(function()
-        local json = readfile(path)
-        return HttpService:JSONDecode(json)
-    end)
-    if success then
-        return result
-    end
-    return nil
-end
-
--- Auto-save functions
-local function saveAutoSettings()
-    if not isFileSystemAvailable() then return false end
-    local path = getAutoSavePath()
-    if not path then return false end
-    local success, result = pcall(function()
-        local configData = {
-            Settings = deepCopy(CurrentConfig),
-            ConfigName = ConfigName,
-            AutoLoadEnabled = AutoLoadEnabled,
-            AutoLoadConfigName = AutoLoadConfigName
-        }
-        local json = HttpService:JSONEncode(configData)
-        writefile(path, json)
-        return true
-    end)
-    return success and result
-end
-
-local function loadAutoSettings()
-    if not isFileSystemAvailable() then return nil end
-    local path = getAutoSavePath()
-    if not path then return nil end
-    if not isfile(path) then return nil end
-    local success, result = pcall(function()
-        local json = readfile(path)
-        return HttpService:JSONDecode(json)
-    end)
-    if success then
-        return result
-    end
-    return nil
-end
-
-local function listConfigFiles()
-    if not isFileSystemAvailable() then return {} end
-    local folder = getConfigFolder()
-    if not folder then return {} end
-    local files = {}
-    pcall(function()
-        for _, file in ipairs(listfiles(folder)) do
-            local name = file:match("([^/\\]+)%.json$")
-            if name then
-                table.insert(files, name)
-            end
-        end
-    end)
-    return files
-end
-
-local function deleteConfigFile(name)
-    if not isFileSystemAvailable() then return false end
-    local path = getConfigFilePath(name)
-    if not path then return false end
-    if not isfile(path) then return false end
-    pcall(function()
-        delfile(path)
-    end)
-    return true
-end
-
--- =======================================
--- UI REFERENCES (will be set by Main)
-local UICallbacks = {}
-
-local function setUICallbacks(callbacks)
-    UICallbacks = callbacks
-end
-
--- Validate value against expected type/constraints
-local function validateValue(key, defaultValue, validator)
-    local val = CurrentConfig[key]
-    if val ~= nil and (not validator or validator(val)) then
-        return val
-    end
-    return defaultValue
-end
-
--- =======================================
--- API
-local Settings = {}
-
--- Persistence System Functions (CivicHub/settings.json)
-function Settings.SaveSettings()
-    return SaveSettings()
-end
-
-function Settings.LoadSettings()
-    return LoadSettings()
-end
-
-function Settings.UpdateSetting(key, value)
-    return UpdateSetting(key, value)
-end
-
-function Settings.ResetSettings()
-    return ResetSettings()
-end
-
-function Settings.AutoLoadSettings()
-    return AutoLoadSettings()
-end
-
-function Settings.GetCurrentConfig()
-    return CurrentConfig
-end
-
-function Settings.GetDefaultSettings()
-    return DEFAULT_SETTINGS
-end
-
-function Settings.IsPersistenceInitialized()
-    return PersistenceInitialized
-end
-
--- Config Management Functions (CivicHub_Configs/*.json)
-function Settings:Save(name)
-    local configName = name or ConfigName
-    local configData = {
-        Name = configName,
-        Settings = deepCopy(CurrentConfig),
-        AutoLoad = AutoLoadEnabled
-    }
-
-    if isFileSystemAvailable() then
-        local success = saveConfigToFile(configName, configData)
-        -- Also auto-save to autosave.json
-        saveAutoSettings()
-        if success then
-            if UICallbacks.Notify then
-                UICallbacks.Notify("Setting saved: " .. configName)
-            end
-        else
-            if UICallbacks.Notify then
-                UICallbacks.Notify("Failed to save config: " .. configName)
-            end
-        end
-        return success
-    else
-        ConfigStorage[configName] = configData
-        if UICallbacks.Notify then
-            UICallbacks.Notify("Config saved in memory: " .. configName)
-        end
-        return true
-    end
-end
-
-function Settings:Load(name)
-    local configName = name or ConfigName
-    local configData
-
-    if isFileSystemAvailable() then
-        configData = loadConfigFromFile(configName)
-    else
-        configData = ConfigStorage[configName]
-    end
-
-    if not configData then
-        if UICallbacks.Notify then
-            UICallbacks.Notify("Setting not found: " .. configName)
-        end
-        return false
-    end
-
-    local loadedSettings = configData.Settings
-
-    -- Validate and apply settings
-    local function validateValue(key, defaultValue, validator)
-        local val = loadedSettings[key]
-        if val ~= nil and (not validator or validator(val)) then
-            return val
-        end
-        return defaultValue
-    end
-
-    -- Apply all settings with validation
-    CurrentConfig.SurvivorESP = validateValue("SurvivorESP", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.KillerESP = validateValue("KillerESP", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.GeneratorESP = validateValue("GeneratorESP", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.SCPESP = validateValue("SCPESP", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.PalletESP = validateValue("PalletESP", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.WindowESP = validateValue("WindowESP", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.ESPRadius = validateValue("ESPRadius", 5000, function(v) return type(v) == "number" end)
-    CurrentConfig.StatusESPEnabled = validateValue("StatusESPEnabled", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.StatusShowName = validateValue("StatusShowName", true, function(v) return type(v) == "boolean" end)
-    CurrentConfig.StatusShowDistance = validateValue("StatusShowDistance", true, function(v) return type(v) == "boolean" end)
-    CurrentConfig.StatusShowHealth = validateValue("StatusShowHealth", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.StatusRadius = validateValue("StatusRadius", 5000, function(v) return type(v) == "number" end)
-    CurrentConfig.CrosshairEnabled = validateValue("CrosshairEnabled", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.CrosshairStyle = validateValue("CrosshairStyle", "Plus", function(v) return v == "Plus" or v == "Dot" or v == "Circle" end)
-    CurrentConfig.CrosshairX = validateValue("CrosshairX", 0, function(v) return type(v) == "number" end)
-    CurrentConfig.CrosshairY = validateValue("CrosshairY", 0, function(v) return type(v) == "number" end)
-    CurrentConfig.AutoSkillCheck = validateValue("AutoSkillCheck", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.SkillCheckMode = validateValue("SkillCheckMode", "Legit", function(v) return v == "Instant" or v == "Legit" or v == "Random" end)
-    CurrentConfig.AutoWiggle = validateValue("AutoWiggle", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.AutoFlee = validateValue("AutoFlee", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.AntiKnockDown = validateValue("AntiKnockDown", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.FastVault = validateValue("FastVault", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.VaultSpeed = validateValue("VaultSpeed", 1.2, function(v) return type(v) == "number" end)
-    CurrentConfig.MoonwalkShowButton = validateValue("MoonwalkShowButton", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.MoonwalkKeybind = validateValue("MoonwalkKeybind", nil, function(v) return v == nil or type(v) == "string" end)
-    CurrentConfig.MoonwalkSpamSpeed = validateValue("MoonwalkSpamSpeed", 30, function(v) return type(v) == "number" end)
-    CurrentConfig.MoonwalkIntensity = validateValue("MoonwalkIntensity", 35, function(v) return type(v) == "number" end)
-    CurrentConfig.AutoStalk = validateValue("AutoStalk", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.AimLockAttack = validateValue("AimLockAttack", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.AutoKillAll = validateValue("AutoKillAll", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.AutoSpamAttack = validateValue("AutoSpamAttack", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.AttackDelay = validateValue("AttackDelay", 0.45, function(v) return type(v) == "number" end)
-    CurrentConfig.MaskedPower = validateValue("MaskedPower", "Cobra", function(v)
-        for _, p in pairs(MaskedPowers) do
-            if p == v then return true end
-        end
-        return false
-    end)
-    CurrentConfig.AutoParry = validateValue("AutoParry", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.ShowParryRange = validateValue("ShowParryRange", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.ParryDistance = validateValue("ParryDistance", 15, function(v) return type(v) == "number" end)
-    CurrentConfig.FaceSensitivity = validateValue("FaceSensitivity", 0.7, function(v) return type(v) == "number" end)
-    CurrentConfig.AimLockEnabled = validateValue("AimLockEnabled", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.AimTarget = validateValue("AimTarget", "Killer", function(v) return v == "Killer" or v == "Survivor" or v == "SCP" end)
-    CurrentConfig.AimPart = validateValue("AimPart", "HumanoidRootPart", function(v) return v == "Head" or v == "HumanoidRootPart" or v == "Torso" end)
-    CurrentConfig.AimFOV = validateValue("AimFOV", 250, function(v) return type(v) == "number" end)
-    CurrentConfig.AimPrediction = validateValue("AimPrediction", 0.12, function(v) return type(v) == "number" end)
-    CurrentConfig.WalkSpeedEnabled = validateValue("WalkSpeedEnabled", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.WalkSpeedValue = validateValue("WalkSpeedValue", 17.6, function(v) return type(v) == "number" end)
-    CurrentConfig.NoClip = validateValue("NoClip", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.JumpPowerEnabled = validateValue("JumpPowerEnabled", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.JumpPowerValue = validateValue("JumpPowerValue", 50, function(v) return type(v) == "number" end)
-    CurrentConfig.EmoteSelected = validateValue("EmoteSelected", "Mannrobics", function(v)
-        for _, e in pairs(EmoteList) do
-            if e == v then return true end
-        end
-        return false
-    end)
-    CurrentConfig.ShowEmoteButton = validateValue("ShowEmoteButton", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.JerkTool = validateValue("JerkTool", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.Fullbright = validateValue("Fullbright", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.NoShadow = validateValue("NoShadow", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.LowGraphics = validateValue("LowGraphics", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.NoScreenEffects = validateValue("NoScreenEffects", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.CleanSky = validateValue("CleanSky", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.ClockTime = validateValue("ClockTime", 14, function(v) return type(v) == "number" end)
-    CurrentConfig.Brightness = validateValue("Brightness", 2, function(v) return type(v) == "number" end)
-    CurrentConfig.FPSBoost = validateValue("FPSBoost", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.ReduceGraphics = validateValue("ReduceGraphics", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.UnlimitedZoom = validateValue("UnlimitedZoom", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.MaxZoomDistance = validateValue("MaxZoomDistance", 1000, function(v) return type(v) == "number" end)
-    CurrentConfig.CustomFOV = validateValue("CustomFOV", false, function(v) return type(v) == "boolean" end)
-    CurrentConfig.CameraFOV = validateValue("CameraFOV", 70, function(v) return type(v) == "number" end)
-
-    -- Theme and Transparency
-    local theme = validateValue("Theme", "Dark", function(v) return v == "Dark" or v == "Light" or v == "Forest" or v == "Amethyst" end)
-    local transparent = validateValue("Transparent", false, function(v) return type(v) == "boolean" end)
-
-    -- Moonwalk - only apply if explicitly enabled in config
-    local moonwalkEnabled = validateValue("MoonwalkEnabled", false, function(v) return type(v) == "boolean" end)
-
-    -- Apply features
-    Features.applyVisual(true)
-    Features.applyOptimization(true)
-    Features.applyUnlimitedZoom()
-    Features.applyCameraFOV()
-    Features.applyNoScreenEffects()
     if CurrentConfig.FPSBoost then
-        Features.applyFPSBoost()
+        safeCallFeatures("applyFPSBoost")
     end
     if CurrentConfig.ReduceGraphics then
-        Features.applyReduceGraphics()
+        safeCallFeatures("applyReduceGraphics")
     end
-    Features.applyWalkSpeed()
-    Features.applyJumpPower()
-    Features.toggleNoClip(CurrentConfig.NoClip)
-    Features.startGunAim()
-    Features.startAttackAim()
-    Features.startSkillCheck()
-    Features.startAutoStalk()
 
-    -- Only enable moonwalk on initial auto-load
+    safeCallFeatures("applyWalkSpeed")
+    safeCallFeatures("applyJumpPower")
+    safeCallFeatures("toggleNoClip", CurrentConfig.NoClip)
+    safeCallFeatures("startGunAim")
+    safeCallFeatures("startAttackAim")
+    safeCallFeatures("startSkillCheck")
+    safeCallFeatures("startAutoStalk")
+
+    -- Moonwalk
     if IsInitialLoad and AutoLoadEnabled then
-        Features.toggleMoonwalk(moonwalkEnabled)
+        safeCallFeatures("toggleMoonwalk", CurrentConfig.MoonwalkEnabled)
     else
-        Features.toggleMoonwalk(false)
+        safeCallFeatures("toggleMoonwalk", false)
     end
 
+    -- UI Buttons
     if CurrentConfig.MoonwalkShowButton then
-        Features.createMoonwalkButton()
+        safeCallFeatures("createMoonwalkButton")
     else
-        Features.removeMoonwalkButton()
+        safeCallFeatures("removeMoonwalkButton")
     end
 
     if CurrentConfig.ShowEmoteButton then
-        Features.createEmoteButton()
+        safeCallFeatures("createEmoteButton")
     else
-        Features.removeEmoteButton()
+        safeCallFeatures("removeEmoteButton")
     end
 
-    if CurrentConfig.JerkTool then
-        Features.createJerkTool()
-    else
-        local char = LocalPlayer.Character
-        if char then
-            local tool = char:FindFirstChild("Jerk Off")
-            if tool then tool:Destroy() end
+    -- Jerk Tool cleanup
+    if not CurrentConfig.JerkTool then
+        pcall(function()
+            local char = LocalPlayer.Character
+            if char then
+                local tool = char:FindFirstChild("Jerk Off")
+                if tool then tool:Destroy() end
+            end
             local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
             if backpack then
                 local tool = backpack:FindFirstChild("Jerk Off")
                 if tool then tool:Destroy() end
             end
+        end)
+    end
+end
+
+-- =============================================
+-- SETTINGS MANAGEMENT - PUBLIC API
+-- =============================================
+
+local Settings = {}
+
+-- =============================================
+-- PERSISTENCE SYSTEM FUNCTIONS
+-- =============================================
+
+function Settings.SaveSettings(): boolean
+    return saveSettingsInternal()
+end
+
+function Settings.LoadSettings(): PersistenceData?
+    return loadSettingsInternal()
+end
+
+function Settings.UpdateSetting(key: string, value: any): boolean
+    if DEFAULT_SETTINGS[key] == nil then
+        warn("[Civic Hub] Unknown setting key:", key)
+        return false
+    end
+
+    local defaultValue = DEFAULT_SETTINGS[key]
+    local success = validateAndApplyValue(CurrentConfig, key, value, defaultValue)
+    if success then
+        scheduleSave()
+    end
+    return success
+end
+
+function Settings.ResetSettings(): boolean
+    initializeDefaultSettings()
+    return saveSettingsInternal()
+end
+
+function Settings.AutoLoadSettings(): boolean
+    initializeDefaultSettings()
+
+    local loadedData = loadSettingsInternal()
+    if loadedData then
+        local success = mergeSettings(loadedData)
+        if success then
+            PersistenceInitialized = true
+            applyAllFeatures()
+            return true
         end
     end
 
-    -- Update UI if callbacks exist
-    if UICallbacks.UpdateUI then
-        UICallbacks.UpdateUI(CurrentConfig)
-    end
-
-    if UICallbacks.Notify then
-        UICallbacks.Notify("Setting loaded: " .. configName)
-    end
-
-    return true
+    -- Fallback to defaults
+    initializeDefaultSettings()
+    PersistenceInitialized = true
+    return false
 end
 
-function Settings:Update(name)
+function Settings.GetCurrentConfig(): SettingsData
+    return CurrentConfig
+end
+
+function Settings.GetDefaultSettings(): SettingsData
+    return DEFAULT_SETTINGS
+end
+
+function Settings.IsPersistenceInitialized(): boolean
+    return PersistenceInitialized
+end
+
+-- =============================================
+-- CONFIG MANAGEMENT FUNCTIONS
+-- =============================================
+
+function Settings.Save(name: string?): boolean
     local configName = name or ConfigName
-    local configData
 
     if isFileSystemAvailable() then
-        configData = loadConfigFromFile(configName)
+        local path = getPersistencePath()
+        if not path then return false end
+
+        local configData = serializeConfig()
+        configData.ConfigName = configName
+
+        local success, err = pcall(function()
+            local json = HttpService:JSONEncode(configData)
+            writefile(path, json)
+            return true
+        end)
+
+        if success and err then
+            if UICallbacks.Notify then
+                UICallbacks.Notify("Settings saved: " .. configName)
+            end
+            return true
+        else
+            warn("[Civic Hub] Save config failed:", err)
+            if UICallbacks.Notify then
+                UICallbacks.Notify("Failed to save config: " .. configName)
+            end
+            return false
+        end
     else
-        configData = ConfigStorage[configName]
+        if UICallbacks.Notify then
+            UICallbacks.Notify("File system not available, cannot save")
+        end
+        return false
+    end
+end
+
+function Settings.Load(name: string?): boolean
+    local configName = name or ConfigName
+
+    if not isFileSystemAvailable() then
+        if UICallbacks.Notify then
+            UICallbacks.Notify("File system not available")
+        end
+        return false
     end
 
-    if not configData then
+    local loadedData = loadSettingsInternal()
+    if not loadedData then
         if UICallbacks.Notify then
             UICallbacks.Notify("Config not found: " .. configName)
         end
         return false
     end
 
-    return self:Save(configName)
+    -- Update config name if different
+    if loadedData.ConfigName and loadedData.ConfigName ~= configName then
+        ConfigName = loadedData.ConfigName
+    end
+
+    local success = mergeSettings(loadedData)
+    if not success then
+        if UICallbacks.Notify then
+            UICallbacks.Notify("Failed to load config: " .. configName)
+        end
+        return false
+    end
+
+    applyAllFeatures()
+
+    if UICallbacks.UpdateUI then
+        UICallbacks.UpdateUI(CurrentConfig)
+    end
+
+    if UICallbacks.Notify then
+        UICallbacks.Notify("Config loaded: " .. configName)
+    end
+
+    return true
 end
 
-function Settings:SetAutoLoad(value)
+function Settings.Update(name: string?): boolean
+    return Settings.Save(name)
+end
+
+function Settings.SetAutoLoad(value: boolean): nil
     AutoLoadEnabled = value
+    scheduleSave()
 end
 
-function Settings:GetAutoLoad()
+function Settings.GetAutoLoad(): boolean
     return AutoLoadEnabled
 end
 
-function Settings:SetAutoLoadConfig(name)
+function Settings.SetAutoLoadConfig(name: string): nil
     AutoLoadConfigName = name
+    scheduleSave()
 end
 
-function Settings:GetAutoLoadConfig()
+function Settings.GetAutoLoadConfig(): string?
     return AutoLoadConfigName
 end
 
-function Settings:Get(name)
+function Settings.Get(name: string): any
     if name == "ConfigName" then
         return ConfigName
     elseif name == "AutoLoadEnabled" then
@@ -782,86 +875,129 @@ function Settings:Get(name)
     end
 end
 
-function Settings:Set(name, value)
+function Settings.Set(name: string, value: any): nil
     if name == "ConfigName" then
-        ConfigName = value
+        ConfigName = tostring(value)
     elseif name == "AutoLoadEnabled" then
-        AutoLoadEnabled = value
+        AutoLoadEnabled = value == true
     elseif name == "AutoLoadConfigName" then
         AutoLoadConfigName = value
     else
-        CurrentConfig[name] = value
-        -- Auto-save when individual setting changes (throttled)
-        scheduleSave()
+        local defaultValue = DEFAULT_SETTINGS[name]
+        if defaultValue ~= nil then
+            validateAndApplyValue(CurrentConfig, name, value, defaultValue)
+            scheduleSave()
+        else
+            warn("[Civic Hub] Unknown setting key in Set:", name)
+        end
     end
 end
 
-function Settings:GetCurrentConfig()
-    return CurrentConfig
-end
-
-function Settings:SetConfigName(name)
+function Settings.SetConfigName(name: string): nil
     ConfigName = name
+    scheduleSave()
 end
 
-function Settings:GetConfigName()
+function Settings.GetConfigName(): string
     return ConfigName
 end
 
-function Settings:Delete(name)
+function Settings.Delete(name: string?): boolean
     local configName = name or ConfigName
-    if isFileSystemAvailable() then
-        local success = deleteConfigFile(configName)
-        if success then
-            if UICallbacks.Notify then
-                UICallbacks.Notify("Config deleted: " .. configName)
-            end
-        else
-            if UICallbacks.Notify then
-                UICallbacks.Notify("Failed to delete config")
-            end
-        end
-        return success
-    else
-        ConfigStorage[configName] = nil
+
+    local path = getPersistencePath()
+    if not path then return false end
+
+    if not isfile(path) then
         if UICallbacks.Notify then
-            UICallbacks.Notify("Config removed from memory: " .. configName)
+            UICallbacks.Notify("Config not found: " .. configName)
+        end
+        return false
+    end
+
+    local success, err = pcall(function()
+        delfile(path)
+        return true
+    end)
+
+    if success and err then
+        if UICallbacks.Notify then
+            UICallbacks.Notify("Config deleted: " .. configName)
         end
         return true
+    else
+        warn("[Civic Hub] Delete failed:", err)
+        if UICallbacks.Notify then
+            UICallbacks.Notify("Failed to delete config")
+        end
+        return false
     end
 end
 
-function Settings:ListConfigs()
-    return listConfigFiles()
+function Settings.ListConfigs(): { string }
+    if not isFileSystemAvailable() then return {} end
+
+    local path = getPersistencePath()
+    if not path then return {} end
+
+    local results = {}
+    if isfile(path) then
+        table.insert(results, CONSTANTS.PERSISTENCE_FILE)
+    end
+    return results
 end
 
-function Settings:SetIsInitialLoad(value)
+function Settings.SetIsInitialLoad(value: boolean): nil
     IsInitialLoad = value
 end
 
-function Settings:GetIsInitialLoad()
+function Settings.GetIsInitialLoad(): boolean
     return IsInitialLoad
 end
 
-function Settings:setUICallbacks(callbacks)
-    setUICallbacks(callbacks)
+-- =============================================
+-- DEPENDENCY INJECTION
+-- =============================================
+
+function Settings.setUICallbacks(callbacks: UICallbacks): nil
+    UICallbacks = callbacks or {}
 end
 
--- Set Features module for remote compatibility
-function Settings:setFeatures(featuresModule)
+function Settings.setFeatures(featuresModule: any): nil
     Features = featuresModule
 end
 
--- Export auto-save functions for Main.lua access
-function Settings:getAutoSaveData()
-    return loadAutoSettings()
+-- =============================================
+-- CLEANUP
+-- =============================================
+
+local function cleanup(): nil
+    -- Cancel pending save
+    if SaveMutex.timer then
+        task.cancel(SaveMutex.timer)
+        SaveMutex.timer = nil
+    end
+
+    -- Flush pending save
+    if SaveMutex.pending then
+        SaveMutex.pending = false
+        saveSettingsInternal()
+    end
+
+    -- Clear callbacks to prevent memory leaks
+    UICallbacks = {}
+
+    -- Clear features reference
+    Features = nil
 end
 
--- Export persistence functions for external access
-function Settings.getAutoLoadSettings()
-    return AutoLoadSettings
-end
+-- =============================================
+-- MODULE EXPORT
+-- =============================================
 
--- =======================================
--- EXPORT
-return Settings
+return setmetatable(Settings, {
+    __gc = cleanup,
+    __tostring = function()
+        return "CivicHub.Settings (v" .. CONSTANTS.VERSION .. ")"
+    end,
+})
